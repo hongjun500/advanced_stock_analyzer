@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}投资组合{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-briefcase me-2"></i>投资组合</h2>
+        <p class="text-muted">管理多只股票的投资组合，查看总体盈亏情况</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>股票列表</h5>
+            </div>
+            <div class="card-body">
+                <div id="portfolioList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>组合摘要</h5>
+            </div>
+            <div class="card-body">
+                <div id="portfolioSummary"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 页面加载时获取股票列表
+document.addEventListener('DOMContentLoaded', function() {
+    refreshPortfolio();
+});
+
+// 刷新投资组合
+function refreshPortfolio() {
+    fetch('/api/get_all_stocks')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPortfolioList(data.stocks);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 显示投资组合列表
+function displayPortfolioList(stocks) {
+    const portfolioDiv = document.getElementById('portfolioList');
+    
+    if (stocks.length === 0) {
+        portfolioDiv.innerHTML = '<p class="text-muted">暂无股票，请先添加交易记录</p>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += '<thead><tr><th>股票代码</th><th>持仓股数</th><th>平均成本</th><th>操作</th></tr></thead><tbody>';
+    
+    stocks.forEach(stockCode => {
+        html += `
+            <tr>
+                <td><strong>${stockCode}</strong></td>
+                <td id="shares-${stockCode}">-</td>
+                <td id="cost-${stockCode}">-</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewStockDetail('${stockCode}')">
+                        <i class="fas fa-eye"></i> 查看
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    portfolioDiv.innerHTML = html;
+    
+    // 获取每只股票的详细信息
+    stocks.forEach(stockCode => {
+        fetchStockDetail(stockCode);
+    });
+}
+
+// 获取股票详细信息
+function fetchStockDetail(stockCode) {
+    fetch(`/api/get_position/${stockCode}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateStockRow(stockCode, data.position);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 更新股票行信息
+function updateStockRow(stockCode, position) {
+    const sharesCell = document.getElementById(`shares-${stockCode}`);
+    const costCell = document.getElementById(`cost-${stockCode}`);
+    
+    if (sharesCell && costCell) {
+        sharesCell.textContent = position.current_shares;
+        costCell.textContent = position.average_cost.toFixed(4) + '元';
+    }
+}
+
+// 查看股票详情
+function viewStockDetail(stockCode) {
+    window.location.href = `/calculator?stock=${stockCode}`;
+}
+</script>
+{% endblock %} 

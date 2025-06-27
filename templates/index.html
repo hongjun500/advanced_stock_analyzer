@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 股票计算器{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-light p-5 rounded">
+            <h1 class="display-4">
+                <i class="fas fa-chart-line text-primary me-3"></i>
+                欢迎使用股票计算器
+            </h1>
+            <p class="lead">专业的股票投资计算和分析工具，帮助您更好地管理投资组合。</p>
+            <hr class="my-4">
+            <p>计算成本、分析盈亏、评估风险，让投资决策更加科学。</p>
+            <a class="btn btn-primary btn-lg" href="/calculator" role="button">
+                <i class="fas fa-calculator me-2"></i>开始使用
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-calculator fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">成本计算</h5>
+                <p class="card-text">精确计算股票平均成本，支持多次买卖的加权平均成本计算。</p>
+                <a href="/calculator" class="btn btn-outline-primary">开始计算</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-briefcase fa-3x text-success mb-3"></i>
+                <h5 class="card-title">投资组合</h5>
+                <p class="card-text">管理多只股票的投资组合，实时查看总体盈亏情况。</p>
+                <a href="/portfolio" class="btn btn-outline-success">查看组合</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                <h5 class="card-title">技术分析</h5>
+                <p class="card-text">提供技术指标分析和投资建议，辅助投资决策。</p>
+                <a href="/analysis" class="btn btn-outline-info">开始分析</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>功能特点
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>精确的成本计算</li>
+                            <li><i class="fas fa-check text-success me-2"></i>实时盈亏分析</li>
+                            <li><i class="fas fa-check text-success me-2"></i>多股票组合管理</li>
+                            <li><i class="fas fa-check text-success me-2"></i>技术指标分析</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>风险评估</li>
+                            <li><i class="fas fa-check text-success me-2"></i>投资建议</li>
+                            <li><i class="fas fa-check text-success me-2"></i>数据导出导入</li>
+                            <li><i class="fas fa-check text-success me-2"></i>响应式设计</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

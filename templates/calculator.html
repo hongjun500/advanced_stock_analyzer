@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}股票计算器{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-calculator me-2"></i>股票计算器</h2>
+        <p class="text-muted">添加交易记录，计算持仓成本和盈亏情况</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus me-2"></i>添加交易记录</h5>
+            </div>
+            <div class="card-body">
+                <form id="tradeForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stockCode" class="form-label">股票代码</label>
+                                <input type="text" class="form-control" id="stockCode" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tradeDate" class="form-label">交易日期</label>
+                                <input type="date" class="form-control" id="tradeDate" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="action" class="form-label">交易类型</label>
+                                <select class="form-select" id="action" required>
+                                    <option value="">请选择</option>
+                                    <option value="buy">买入</option>
+                                    <option value="sell">卖出</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="price" class="form-label">价格 (元)</label>
+                                <input type="number" class="form-control" id="price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="shares" class="form-label">股数</label>
+                                <input type="number" class="form-control" id="shares" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="commission" class="form-label">手续费 (元)</label>
+                                <input type="number" class="form-control" id="commission" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">备注</label>
+                        <input type="text" class="form-control" id="description" placeholder="可选">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>添加交易
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>查询持仓</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="queryStockCode" class="form-label">股票代码</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="queryStockCode" placeholder="输入股票代码">
+                        <button class="btn btn-outline-primary" type="button" onclick="queryPosition()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="positionResult" style="display: none;">
+                    <h6>持仓信息</h6>
+                    <div id="positionInfo"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>盈亏计算</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="currentPrice" class="form-label">当前价格 (元)</label>
+                    <input type="number" class="form-control" id="currentPrice" step="0.01" min="0">
+                </div>
+                <button class="btn btn-outline-success" onclick="calculateProfitLoss()">
+                    <i class="fas fa-calculator me-2"></i>计算盈亏
+                </button>
+                
+                <div id="profitLossResult" style="display: none;" class="mt-3">
+                    <h6>盈亏结果</h6>
+                    <div id="profitLossInfo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>交易历史</h5>
+            </div>
+            <div class="card-body">
+                <div id="tradeHistory"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 设置默认日期为今天
+document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
+
+// 添加交易记录
+document.getElementById('tradeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        stock_code: document.getElementById('stockCode').value,
+        date: document.getElementById('tradeDate').value,
+        action: document.getElementById('action').value,
+        price: parseFloat(document.getElementById('price').value),
+        shares: parseInt(document.getElementById('shares').value),
+        commission: parseFloat(document.getElementById('commission').value),
+        description: document.getElementById('description').value
+    };
+    
+    fetch('/api/add_trade', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('交易记录添加成功！');
+            document.getElementById('tradeForm').reset();
+            document.getElementById('tradeDate').value = new Date().toISOString().split('T')[0];
+            // 刷新交易历史
+            if (formData.stock_code) {
+                queryPosition();
+            }
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('添加失败，请重试');
+    });
+});
+
+// 查询持仓
+function queryPosition() {
+    const stockCode = document.getElementById('queryStockCode').value;
+    if (!stockCode) {
+        alert('请输入股票代码');
+        return;
+    }
+    
+    fetch(`/api/get_position/${stockCode}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPosition(data.position, data.history);
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('查询失败，请重试');
+    });
+}
+
+// 显示持仓信息
+function displayPosition(position, history) {
+    const positionDiv = document.getElementById('positionInfo');
+    const historyDiv = document.getElementById('tradeHistory');
+    
+    // 显示持仓信息
+    positionDiv.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>持仓股数:</strong> ${position.current_shares}</p>
+                <p><strong>平均成本:</strong> ${position.average_cost.toFixed(4)}元</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>总成本:</strong> ${position.total_cost.toFixed(2)}元</p>
+                <p><strong>总手续费:</strong> ${position.total_commission.toFixed(2)}元</p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('positionResult').style.display = 'block';
+    
+    // 显示交易历史
+    if (history && history.length > 0) {
+        let historyHtml = '<div class="table-responsive"><table class="table table-striped">';
+        historyHtml += '<thead><tr><th>日期</th><th>类型</th><th>价格</th><th>股数</th><th>金额</th><th>手续费</th><th>备注</th></tr></thead><tbody>';
+        
+        history.forEach(trade => {
+            const actionText = trade.action === 'buy' ? '买入' : '卖出';
+            const actionClass = trade.action === 'buy' ? 'text-success' : 'text-danger';
+            
+            historyHtml += `
+                <tr>
+                    <td>${trade.date}</td>
+                    <td><span class="${actionClass}">${actionText}</span></td>
+                    <td>${trade.price.toFixed(2)}元</td>
+                    <td>${trade.shares}</td>
+                    <td>${trade.amount.toFixed(2)}元</td>
+                    <td>${trade.commission.toFixed(2)}元</td>
+                    <td>${trade.description || '-'}</td>
+                </tr>
+            `;
+        });
+        
+        historyHtml += '</tbody></table></div>';
+        historyDiv.innerHTML = historyHtml;
+    } else {
+        historyDiv.innerHTML = '<p class="text-muted">暂无交易记录</p>';
+    }
+}
+
+// 计算盈亏
+function calculateProfitLoss() {
+    const stockCode = document.getElementById('queryStockCode').value;
+    const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+    
+    if (!stockCode || !currentPrice) {
+        alert('请输入股票代码和当前价格');
+        return;
+    }
+    
+    fetch('/api/calculate_profit_loss', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            stock_code: stockCode,
+            current_price: currentPrice
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayProfitLoss(data.result);
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('计算失败，请重试');
+    });
+}
+
+// 显示盈亏结果
+function displayProfitLoss(result) {
+    const profitLossDiv = document.getElementById('profitLossInfo');
+    const profitClass = result.profit_loss >= 0 ? 'text-success' : 'text-danger';
+    const profitIcon = result.profit_loss >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+    
+    profitLossDiv.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>盈亏金额:</strong> <span class="${profitClass}"><i class="fas ${profitIcon}"></i> ${result.profit_loss.toFixed(2)}元</span></p>
+                <p><strong>盈亏率:</strong> <span class="${profitClass}">${result.profit_loss_rate.toFixed(2)}%</span></p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>市值:</strong> ${result.market_value.toFixed(2)}元</p>
+                <p><strong>总投资:</strong> ${result.total_investment.toFixed(2)}元</p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('profitLossResult').style.display = 'block';
+}
+</script>
+{% endblock %} 

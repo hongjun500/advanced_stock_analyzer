@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}股票分析{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-bar me-2"></i>股票分析</h2>
+        <p class="text-muted">技术指标分析和投资建议</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>选择股票</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="analysisStockCode" class="form-label">股票代码</label>
+                    <select class="form-select" id="analysisStockCode">
+                        <option value="">请选择股票</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="currentPrice" class="form-label">当前价格 (元)</label>
+                    <input type="number" class="form-control" id="currentPrice" step="0.01" min="0">
+                </div>
+                <button class="btn btn-primary" onclick="analyzeStock()">
+                    <i class="fas fa-chart-line me-2"></i>开始分析
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-upload me-2"></i>价格历史数据</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">添加价格数据 (可选)</label>
+                    <textarea class="form-control" id="priceHistory" rows="5" 
+                              placeholder="格式：日期,价格,成交量&#10;例如：&#10;2024-01-01,20.00,1000&#10;2024-01-02,20.10,1200"></textarea>
+                </div>
+                <small class="text-muted">如果不提供历史数据，将使用当前价格进行分析</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>分析报告</h5>
+            </div>
+            <div class="card-body">
+                <div id="analysisResult"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 页面加载时获取股票列表
+document.addEventListener('DOMContentLoaded', function() {
+    loadStockList();
+});
+
+// 加载股票列表
+function loadStockList() {
+    fetch('/api/get_all_stocks')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById('analysisStockCode');
+            data.stocks.forEach(stockCode => {
+                const option = document.createElement('option');
+                option.value = stockCode;
+                option.textContent = stockCode;
+                select.appendChild(option);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 分析股票
+function analyzeStock() {
+    const stockCode = document.getElementById('analysisStockCode').value;
+    const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+    const priceHistoryText = document.getElementById('priceHistory').value;
+    
+    if (!stockCode || !currentPrice) {
+        alert('请选择股票并输入当前价格');
+        return;
+    }
+    
+    // 解析价格历史数据
+    const priceHistory = [];
+    if (priceHistoryText.trim()) {
+        const lines = priceHistoryText.trim().split('\n');
+        lines.forEach(line => {
+            const parts = line.split(',');
+            if (parts.length >= 2) {
+                priceHistory.push({
+                    date: parts[0].trim(),
+                    price: parseFloat(parts[1].trim()),
+                    volume: parts.length >= 3 ? parseInt(parts[2].trim()) : 0
+                });
+            }
+        });
+    }
+    
+    fetch('/api/analyze_stock', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            stock_code: stockCode,
+            current_price: currentPrice,
+            price_history: priceHistory
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayAnalysisResult(data.analysis);
+        } else {
+            alert('错误: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('分析失败，请重试');
+    });
+}
+
+// 显示分析结果
+function displayAnalysisResult(analysis) {
+    const resultDiv = document.getElementById('analysisResult');
+    
+    if (analysis.error) {
+        resultDiv.innerHTML = `<div class="alert alert-warning">${analysis.error}</div>`;
+        return;
+    }
+    
+    const profitClass = analysis.profit_loss.profit_loss >= 0 ? 'text-success' : 'text-danger';
+    const profitIcon = analysis.profit_loss.profit_loss >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+    const riskClass = analysis.risk_analysis.risk_level === '高' ? 'text-danger' : 
+                     analysis.risk_analysis.risk_level === '中' ? 'text-warning' : 'text-success';
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-info-circle me-2"></i>持仓信息</h6>
+                <ul class="list-unstyled">
+                    <li><strong>股票代码:</strong> ${analysis.position_summary.stock_code}</li>
+                    <li><strong>持仓股数:</strong> ${analysis.position_summary.current_shares}</li>
+                    <li><strong>平均成本:</strong> ${analysis.position_summary.average_cost.toFixed(4)}元</li>
+                    <li><strong>总投资:</strong> ${analysis.position_summary.total_investment.toFixed(2)}元</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-chart-line me-2"></i>盈亏分析</h6>
+                <ul class="list-unstyled">
+                    <li><strong>盈亏金额:</strong> <span class="${profitClass}"><i class="fas ${profitIcon}"></i> ${analysis.profit_loss.profit_loss.toFixed(2)}元</span></li>
+                    <li><strong>盈亏率:</strong> <span class="${profitClass}">${analysis.profit_loss.profit_loss_rate.toFixed(2)}%</span></li>
+                    <li><strong>市值:</strong> ${analysis.profit_loss.market_value.toFixed(2)}元</li>
+                </ul>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-chart-bar me-2"></i>技术分析</h6>
+                <ul class="list-unstyled">
+                    <li><strong>趋势分析:</strong> ${analysis.technical_analysis.trend}</li>
+                    <li><strong>RSI信号:</strong> ${analysis.technical_analysis.rsi_signal}</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>风险分析</h6>
+                <ul class="list-unstyled">
+                    <li><strong>波动率:</strong> ${(analysis.risk_analysis.volatility * 100).toFixed(2)}%</li>
+                    <li><strong>最大回撤:</strong> ${(analysis.risk_analysis.max_drawdown * 100).toFixed(2)}%</li>
+                    <li><strong>风险等级:</strong> <span class="${riskClass}">${analysis.risk_analysis.risk_level}</span></li>
+                </ul>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-12">
+                <h6><i class="fas fa-lightbulb me-2"></i>投资建议</h6>
+                <div class="alert alert-info">
+                    <ul class="mb-0">
+    `;
+    
+    analysis.advice.forEach(advice => {
+        html += `<li>${advice}</li>`;
+    });
+    
+    html += `
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    resultDiv.innerHTML = html;
+}
+</script>
+{% endblock %} 
