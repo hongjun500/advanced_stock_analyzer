@@ -1,0 +1,13 @@
+services:
+  advanced_stock_analyzer:
+    image: hongjun500/advanced_stock_analyzer:1.0
+    container_name: advanced_stock_analyzer
+    restart: always
+    ports:
+      - "8888:8888"
+    networks:
+      - mid_network
+
+networks:
+  mid_network:
+    external: true

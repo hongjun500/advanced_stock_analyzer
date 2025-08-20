@@ -50,21 +50,21 @@ def add_trade():
         commission = float(data.get('commission', 0))
         description = data.get('description', '')
         date_str = data.get('date', datetime.now().strftime('%Y-%m-%d'))
-        
+
         # 解析日期
         trade_date = datetime.strptime(date_str, '%Y-%m-%d')
-        
+
         # 获取或创建股票计算器
         calculator = portfolio.add_stock(stock_code)
-        
+
         # 添加交易记录
         if action == 'buy':
             calculator.buy(trade_date, price, shares, commission, description)
         elif action == 'sell':
             calculator.sell(trade_date, price, shares, commission, description)
-        
+
         return jsonify({'success': True, 'message': '交易记录添加成功'})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -75,16 +75,16 @@ def get_position(stock_code):
         calculator = portfolio.get_stock(stock_code)
         if not calculator:
             return jsonify({'success': False, 'message': '股票不存在'})
-        
+
         position = calculator.get_position_summary()
         history = calculator.get_trade_history()
-        
+
         return jsonify({
             'success': True,
             'position': position,
             'history': history
         })
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -95,18 +95,18 @@ def calculate_profit_loss():
         data = request.get_json()
         stock_code = data.get('stock_code', '')
         current_price = float(data.get('current_price', 0))
-        
+
         calculator = portfolio.get_stock(stock_code)
         if not calculator:
             return jsonify({'success': False, 'message': '股票不存在'})
-        
+
         result = calculator.calculate_profit_loss(current_price)
-        
+
         return jsonify({
             'success': True,
             'result': result
         })
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -116,14 +116,14 @@ def get_portfolio_summary():
     try:
         data = request.get_json()
         current_prices = data.get('current_prices', {})
-        
+
         summary = portfolio.get_portfolio_summary(current_prices)
-        
+
         return jsonify({
             'success': True,
             'summary': summary
         })
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -135,27 +135,27 @@ def analyze_stock():
         stock_code = data.get('stock_code', '')
         current_price = float(data.get('current_price', 0))
         price_history = data.get('price_history', [])
-        
+
         calculator = portfolio.get_stock(stock_code)
         if not calculator:
             return jsonify({'success': False, 'message': '股票不存在'})
-        
+
         analyzer = StockAnalyzer(calculator)
-        
+
         # 添加价格历史
         for price_data in price_history:
             date = datetime.strptime(price_data['date'], '%Y-%m-%d')
             price = float(price_data['price'])
             volume = int(price_data.get('volume', 0))
             analyzer.add_price_history(date, price, volume)
-        
+
         analysis = analyzer.analyze_stock(current_price)
-        
+
         return jsonify({
             'success': True,
             'analysis': analysis
         })
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -165,11 +165,11 @@ def save_portfolio():
     try:
         data = request.get_json()
         filename = data.get('filename', 'portfolio.json')
-        
+
         portfolio.save_portfolio(filename)
-        
+
         return jsonify({'success': True, 'message': '投资组合保存成功'})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -179,11 +179,11 @@ def load_portfolio():
     try:
         data = request.get_json()
         filename = data.get('filename', 'portfolio.json')
-        
+
         portfolio.load_portfolio(filename)
-        
+
         return jsonify({'success': True, 'message': '投资组合加载成功'})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
@@ -196,9 +196,9 @@ def get_all_stocks():
             'success': True,
             'stocks': stocks
         })
-    
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'错误: {str(e)}'})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8080) 
+    app.run(debug=True, host='0.0.0.0', port=8888)
